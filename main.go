@@ -3,9 +3,13 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"go-migrationdb/services/migrate"
+	"net/http"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/spf13/viper"
 )
 
@@ -32,6 +36,18 @@ func main() {
 		panic(err)
 	}
 
+	service := migrate.NewService(db)
+	migrate := migrate.NewHandler(service)
+
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	e.GET("/health", makeHealthHandler(db))
+	e.POST("/up", migrate.UpDB)
+	e.POST("/down", migrate.DownDB)
+
+	e.Logger.Fatal(e.Start(":1323"))
 }
 
 func initLocalDB() (*sql.DB, error) {
@@ -51,4 +67,19 @@ func initLocalDB() (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func makeHealthHandler(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		err := db.Ping()
+		if err != nil {
+			fmt.Println("db ping error: ", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"status": "unhealty",
+				"msg":    fmt.Sprintf("db ping error: %s", err.Error()),
+			})
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{"status": "healthy"})
+	}
 }

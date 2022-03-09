@@ -8,3 +8,4 @@ mysql:
     bank: "banking"
   host: "localhost"
   port: "3306"
+migrationenv: "dev"  
