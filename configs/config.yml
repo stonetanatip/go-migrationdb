@@ -1,0 +1,10 @@
+app:
+  name: "migration"
+  port: "1323"
+mysql:
+  username: "root"
+  password: "1234"
+  database: 
+    bank: "banking"
+  host: "localhost"
+  port: "3306"
